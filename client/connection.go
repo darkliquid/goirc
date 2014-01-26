@@ -37,6 +37,7 @@ type Conn struct {
 	State interface{}
 
 	// I/O stuff to server
+	netsock   net.Conn
 	sock      net.Conn
 	io        *bufio.ReadWriter
 	in        chan *Line
@@ -50,6 +51,9 @@ type Conn struct {
 	// Are we connecting via SSL? Do we care about certificate validity?
 	SSL       bool
 	SSLConfig *tls.Config
+
+	// Connection timeout
+	Timeout time.Duration
 
 	// Client->server ping frequency, in seconds. Defaults to 3m.
 	PingFreq time.Duration
@@ -99,6 +103,7 @@ func Client(nick, ident, name string, r event.EventRegistry) *Conn {
 		NewNick:   func(s string) string { return s + "_" },
 		badness:   0,
 		lastsent:  time.Now(),
+		Timeout:   time.Minute,
 	}
 	conn.addIntHandlers()
 	conn.Me = state.NewNick(nick)
@@ -134,6 +139,7 @@ func (conn *Conn) DisableStateTracking() {
 func (conn *Conn) initialise() {
 	conn.io = nil
 	conn.sock = nil
+	conn.netsock = nil
 	if conn.st {
 		conn.ST.Wipe()
 	}
@@ -156,17 +162,19 @@ func (conn *Conn) Connect(host string, pass ...string) error {
 			host += ":6697"
 		}
 		logging.Info("irc.Connect(): Connecting to %s with SSL.", host)
-		if s, err := tls.Dial("tcp", host, conn.SSLConfig); err == nil {
-			conn.sock = s
+
+		if net_conn, err:=net.DialTimeout("tcp", host, conn.Timeout); err == nil {
+		    conn.netsock = net_conn
+		    conn.sock = tls.Client(conn.netsock, conn.SSLConfig)
 		} else {
-			return err
+		    return err
 		}
 	} else {
 		if !hasPort(host) {
 			host += ":6667"
 		}
 		logging.Info("irc.Connect(): Connecting to %s without SSL.", host)
-		if s, err := net.Dial("tcp", host); err == nil {
+		if s, err := net.DialTimeout("tcp", host, conn.Timeout); err == nil {
 			conn.sock = s
 		} else {
 			return err
@@ -316,6 +324,10 @@ func (conn *Conn) shutdown() {
 		conn.ED.Dispatch(DISCONNECTED, conn, &Line{})
 		conn.Connected = false
 		conn.sock.Close()
+		// Using if here because we might not have one if no need to setup tls
+		if conn.netsock != nil {
+		    conn.netsock.Close()
+		}
 		conn.cSend <- true
 		conn.cLoop <- true
 		conn.cPing <- true
