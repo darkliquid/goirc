@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/fluffle/goevent/event"
-	"github.com/fluffle/goirc/state"
+	"github.com/darkliquid/goirc/state"
 	"github.com/fluffle/golog/logging"
 	"net"
 	"strings"

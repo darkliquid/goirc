@@ -5,7 +5,7 @@ GoIRC Client Framework
 
 Pretty simple, really:
 
-	go get github.com/fluffle/goirc/client
+	go get github.com/darkliquid/goirc/client
 
 There is some example code that demonstrates usage of the library in `client.go`. This will connect to freenode and join `#go-nuts` by default, so be careful ;-)
 
@@ -19,7 +19,7 @@ for a quick way to migrate.
 Synopsis:
 
     import "flag"
-	import irc "github.com/fluffle/goirc/client"
+	import irc "github.com/darkliquid/goirc/client"
 
 	func main() {
         flag.Parse() // parses the logging flags.
