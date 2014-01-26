@@ -175,6 +175,7 @@ func (conn *Conn) Connect(host string, pass ...string) error {
 		}
 		logging.Info("irc.Connect(): Connecting to %s without SSL.", host)
 		if s, err := net.DialTimeout("tcp", host, conn.Timeout); err == nil {
+		    logging.Info("irc.Connect(): Connected")
 			conn.sock = s
 		} else {
 			return err
@@ -283,6 +284,9 @@ func (conn *Conn) write(line string) {
 			<-time.After(t)
 		}
 	}
+
+	// Set a write deadline based on the time out
+	conn.sock.SetWriteDeadline(time.Now().Add(conn.Timeout))
 
 	if _, err := conn.io.WriteString(line + "\r\n"); err != nil {
 		logging.Error("irc.send(): %s", err.Error())
