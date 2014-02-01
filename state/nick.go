@@ -66,6 +66,15 @@ func (nk *Nick) IsOnStr(c string) (*Channel, bool) {
 	return ch, ok
 }
 
+func (nk *Nick) PrivsOnStr(c string) (*ChanPrivs, bool) {
+	channel, ok := nk.IsOnStr(c)
+	if ok {
+		cp, ok := nk.chans[channel]
+		return cp, ok
+	}
+	return nil, ok
+}
+
 // Associates a Channel with a Nick.
 func (nk *Nick) addChannel(ch *Channel, cp *ChanPrivs) {
 	if _, ok := nk.chans[ch]; !ok {
