@@ -228,12 +228,32 @@ func (conn *Conn) send() {
 // receive one \r\n terminated line from peer, parse and dispatch it
 func (conn *Conn) recv() {
 	for {
+		// Set a read deadline based on the time out
+		if conn.sock != nil {
+			conn.sock.SetReadDeadline(time.Now().Add(conn.Timeout + conn.PingFreq))
+		}
+
 		s, err := conn.io.ReadString('\n')
+		logging.Debug("irc.recv(): past blocking read")
+
+		if neterr, ok := err.(net.Error); ok && neterr.Timeout() {
+			logging.Error("irc.recv(): Timeout - %s", err.Error())
+			conn.shutdown()
+			return
+		}
+
 		if err != nil {
 			logging.Error("irc.recv(): %s", err.Error())
 			conn.shutdown()
 			return
 		}
+
+		// We got past our blocking read, so bin timeout
+		if conn.sock != nil {
+			var zero time.Time
+			conn.sock.SetReadDeadline(zero)
+		}
+
 		s = strings.Trim(s, "\r\n")
 		logging.Debug("<- %s", s)
 
@@ -286,9 +306,20 @@ func (conn *Conn) write(line string) {
 	}
 
 	// Set a write deadline based on the time out
-	conn.sock.SetWriteDeadline(time.Now().Add(conn.Timeout))
+	if conn.sock != nil {
+		conn.sock.SetWriteDeadline(time.Now().Add(conn.Timeout))
+	}
 
-	if _, err := conn.io.WriteString(line + "\r\n"); err != nil {
+	_, err := conn.io.WriteString(line + "\r\n")
+	logging.Debug("irc.send(): past blocking write")
+
+	if neterr, ok := err.(net.Error); ok && neterr.Timeout() {
+		logging.Error("irc.send(): Timeout - %s", err.Error())
+		conn.shutdown()
+		return
+	}
+
+	if err != nil {
 		logging.Error("irc.send(): %s", err.Error())
 		conn.shutdown()
 		return
@@ -298,6 +329,13 @@ func (conn *Conn) write(line string) {
 		conn.shutdown()
 		return
 	}
+
+	// We got past our blocking write, so bin timeout
+	if conn.sock != nil {
+		var zero time.Time
+		conn.sock.SetWriteDeadline(zero)
+	}
+
 	logging.Debug("-> %s", line)
 }
 

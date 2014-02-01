@@ -6,6 +6,7 @@ package client
 import (
 	"github.com/fluffle/goevent/event"
 	"strings"
+	"fmt"
 )
 
 // Consts for unnamed events.
@@ -56,6 +57,14 @@ func (conn *Conn) addIntHandlers() {
 	for n, h := range intHandlers {
 		conn.ER.AddHandler(h, n)
 	}
+}
+
+func (conn *Conn) DelIntHandler(n string) {
+	if h := intHandlers[n]; h != nil {
+		conn.ER.DelHandler(h, n)
+		return
+	}
+	panic(fmt.Sprintf("Can't delete internal handler \"%s\" as it doesn't exist.", n))
 }
 
 // Password/User/Nick broadcast on connection.
