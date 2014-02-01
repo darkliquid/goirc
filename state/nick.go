@@ -19,20 +19,21 @@ type Nick struct {
 // This is only really useful for me, as we can't see other people's modes
 // without IRC operator privileges (and even then only on some IRCd's).
 type NickMode struct {
-	// MODE +B, +i, +o, +w, +x, +z
-	Bot, Invisible, Oper, WallOps, HiddenHost, SSL, Registered bool
+	// MODE +B, +i, +o, +w, +x, +z, +R, +r
+	Bot, Invisible, Oper, WallOps, HiddenHost, SSL, RegisteredOnly, Registered bool
 }
 
 // Map *irc.NickMode fields to IRC mode characters and vice versa
 var StringToNickMode = map[string]string{}
 var NickModeToString = map[string]string{
-	"Bot":        "B",
-	"Invisible":  "i",
-	"Oper":       "o",
-	"WallOps":    "w",
-	"HiddenHost": "x",
-	"SSL":        "z",
-	"Registered": "R",
+	"Bot":            "B",
+	"Invisible":      "i",
+	"Oper":           "o",
+	"WallOps":        "w",
+	"HiddenHost":     "x",
+	"SSL":            "z",
+	"RegisteredOnly": "R",
+	"Registered":     "r",
 }
 
 func init() {
@@ -106,8 +107,10 @@ func (nk *Nick) ParseModes(modes string) {
 			nk.Modes.HiddenHost = modeop
 		case 'z':
 			nk.Modes.SSL = modeop
-		case 'R':
+		case 'r':
 			nk.Modes.Registered = modeop
+		case 'R':
+		    nk.Modes.RegisteredOnly = modeop
 		default:
 			logging.Info("Nick.ParseModes(): unknown mode char %c", m)
 		}
